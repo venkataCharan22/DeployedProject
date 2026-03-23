@@ -5,6 +5,19 @@ import { useProfile } from '../hooks/useProfile';
 import { BUSINESS_TYPES } from '../lib/businessTypes';
 import LoadingSpinner from '../components/LoadingSpinner';
 
+const shopNameExamples = {
+  grocery: 'e.g. Sharma Kirana Store',
+  music_instruments: 'e.g. Melody Music House',
+  bikes: 'e.g. Speed Motors',
+  gold_jewelry: 'e.g. Lakshmi Jewellers',
+  electronics: 'e.g. Digital World Electronics',
+  clothing: 'e.g. Fashion Hub Textiles',
+  pharmacy: 'e.g. LifeCare Pharmacy',
+  hardware: 'e.g. Gupta Hardware & Tools',
+  stationery: 'e.g. Scholar Book Depot',
+  general: 'e.g. Balaji General Store',
+};
+
 export default function OnboardingPage() {
   const [step, setStep] = useState(1);
   const [userType, setUserType] = useState(null);
@@ -185,7 +198,7 @@ export default function OnboardingPage() {
               type="text"
               value={businessName}
               onChange={(e) => setBusinessName(e.target.value)}
-              placeholder="e.g. Krishna Music Store"
+              placeholder={shopNameExamples[businessType] || 'e.g. My Shop'}
               className="input w-full py-3 text-center text-lg"
               autoFocus
             />

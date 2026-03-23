@@ -16,11 +16,14 @@ export default function SwipeableProductCard({ product, onSell, onRent, onEdit }
   const isDataUri = image && image.startsWith('data:');
   const isUrl = image && image.startsWith('http');
 
+  const [imgError, setImgError] = useState(false);
+
   const [open, setOpen] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [dragX, setDragX] = useState(0);
   const [priceTip, setPriceTip] = useState(null);
   const [loadingPrice, setLoadingPrice] = useState(false);
+  const [priceError, setPriceError] = useState(false);
   const ACTION_WIDTH = 220;
 
   const startXRef = useRef(0);
@@ -127,12 +130,13 @@ export default function SwipeableProductCard({ product, onSell, onRent, onEdit }
         </button>
         <button
           onClick={async () => {
-            if (priceTip) { setPriceTip(null); return; }
+            if (priceTip) { setPriceTip(null); setPriceError(false); return; }
             setLoadingPrice(true);
+            setPriceError(false);
             try {
               const { data } = await api.post('/optimize-price', { product_id: product.id });
               setPriceTip(data);
-            } catch { setPriceTip(null); }
+            } catch { setPriceTip(null); setPriceError(true); setTimeout(() => setPriceError(false), 3000); }
             finally { setLoadingPrice(false); }
           }}
           className="flex w-[74px] flex-col items-center justify-center gap-1.5 bg-amber-500 text-gray-950 transition-transform active:scale-95"
@@ -166,8 +170,8 @@ export default function SwipeableProductCard({ product, onSell, onRent, onEdit }
         >
           {open ? (
             <ChevronLeft size={18} className="text-emerald-400" />
-          ) : isDataUri || isUrl ? (
-            <img src={image} alt={name} className="h-full w-full object-cover" draggable={false} />
+          ) : (isDataUri || isUrl) && !imgError ? (
+            <img src={image} alt={name} className="h-full w-full object-cover" draggable={false} onError={() => setImgError(true)} />
           ) : isEmoji ? (
             <span className="text-xl">{image}</span>
           ) : (
@@ -187,6 +191,13 @@ export default function SwipeableProductCard({ product, onSell, onRent, onEdit }
 
         <ChevronLeft size={14} className={`text-gray-600 transition-transform duration-300 ${open ? 'rotate-180' : ''}`} />
       </div>
+
+      {/* AI Price Error */}
+      {priceError && (
+        <div className="mt-1 rounded-xl border border-red-500/20 bg-red-500/5 px-3 py-2 text-xs text-red-400 animate-fade-in">
+          AI pricing failed. Try again later.
+        </div>
+      )}
 
       {/* AI Price Tip */}
       {priceTip && (

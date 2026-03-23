@@ -46,22 +46,31 @@ export default function InventoryPage() {
   const businessDef = BUSINESS_TYPES.find((b) => b.id === profile?.businessType);
   const categories = ['All', ...(businessDef?.defaultCategories || DEFAULT_CATEGORIES)];
 
-  // Fetch product image from Pexels via AI
+  // Fetch product image from Pexels via AI (with abort for race conditions)
+  const imageAbortRef = useRef(null);
   const fetchProductImage = async (productName) => {
     if (!productName || productName.length < 2) return;
+    // Cancel any in-flight image request
+    if (imageAbortRef.current) imageAbortRef.current.abort();
+    const controller = new AbortController();
+    imageAbortRef.current = controller;
     setFetchingImage(true);
     try {
       const { data } = await api.post('/product-image', {
         product_name: productName,
         business_type: profile?.businessType || null,
-      });
+      }, { signal: controller.signal, timeout: 15000 });
       if (data.image_url) {
         setForm((f) => ({ ...f, image: f.image || data.image_url }));
       }
-    } catch {
-      // Silently fail — image is optional
+    } catch (err) {
+      if (err?.name !== 'CanceledError' && err?.code !== 'ERR_CANCELED') {
+        console.warn('Image fetch failed for:', productName, err?.message);
+      }
     } finally {
-      setFetchingImage(false);
+      if (imageAbortRef.current === controller) {
+        setFetchingImage(false);
+      }
     }
   };
 
@@ -192,7 +201,7 @@ export default function InventoryPage() {
     if (!name || name.length < 2 || name === lastCategorizedName.current) return;
     lastCategorizedName.current = name;
 
-    // Auto-fetch product image if none set
+    // Always try to fetch image if none set
     if (!form.image) {
       fetchProductImage(name);
     }
@@ -299,9 +308,9 @@ export default function InventoryPage() {
   }
 
   return (
-    <div className="flex flex-col pb-24 pt-6">
+    <div className="flex flex-col pb-24 pt-6 lg:pt-8">
       {/* Header */}
-      <div className="flex items-center justify-between px-4">
+      <div className="flex items-center justify-between px-4 lg:px-8">
         <h1 className="text-xl font-bold">Inventory</h1>
         <div className="flex gap-2">
           <button
@@ -327,7 +336,7 @@ export default function InventoryPage() {
       </div>
 
       {/* Tab Toggle: Products | Rentals */}
-      <div className="mt-4 flex gap-1 mx-4 rounded-xl bg-gray-900 p-1">
+      <div className="mt-4 flex gap-1 mx-4 lg:mx-8 rounded-xl bg-gray-900 p-1">
         <button
           onClick={() => setTab('products')}
           className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition-colors ${
@@ -359,7 +368,7 @@ export default function InventoryPage() {
       {tab === 'products' && (
         <>
           {/* Search */}
-          <div className="mt-4 px-4">
+          <div className="mt-4 px-4 lg:px-8">
             <div className="relative">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
               <input type="text" placeholder="Search products..." value={search} onChange={(e) => setSearch(e.target.value)} className="input pl-10" />
@@ -367,7 +376,7 @@ export default function InventoryPage() {
           </div>
 
           {/* Category Chips */}
-          <div className="mt-4 flex gap-2 overflow-x-auto px-4 pb-2 scrollbar-none">
+          <div className="mt-4 flex gap-2 overflow-x-auto px-4 lg:px-8 pb-2 scrollbar-none">
             {categories.map((cat) => (
               <button
                 key={cat}
@@ -384,13 +393,14 @@ export default function InventoryPage() {
           </div>
 
           {/* Swipe hint */}
-          <div className="mt-3 px-4">
+          <div className="mt-3 px-4 lg:px-8">
             <p className="text-[10px] text-gray-600 text-center">Swipe left on a product to sell or rent</p>
           </div>
 
           {/* Product List */}
-          <div className="mt-2 space-y-2 px-4">
-            <p className="text-xs text-gray-500">{filtered.length} products</p>
+          <div className="mt-2 px-4 lg:px-8">
+            <p className="text-xs text-gray-500 mb-2">{filtered.length} products</p>
+            <div className="space-y-2 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0 xl:grid-cols-3">
             {filtered.map((product) => (
               <SwipeableProductCard
                 key={product.id}
@@ -401,10 +411,11 @@ export default function InventoryPage() {
               />
             ))}
             {filtered.length === 0 && (
-              <div className="py-12 text-center text-sm text-gray-600">
+              <div className="py-12 text-center text-sm text-gray-600 lg:col-span-full">
                 {products.length === 0 ? 'No products yet. Tap "Add" to get started!' : 'No products match your search'}
               </div>
             )}
+            </div>
           </div>
         </>
       )}
@@ -495,38 +506,20 @@ export default function InventoryPage() {
 
       {/* Add/Edit Product Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowModal(false)}>
-          <div className="flex w-full max-w-lg flex-col rounded-t-3xl border-t border-gray-800 bg-gray-950" style={{ maxHeight: '85dvh' }} onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setShowModal(false)}>
+          <div className="flex w-full max-w-lg flex-col rounded-2xl border border-gray-800 bg-gray-950" style={{ maxHeight: '85dvh' }} onClick={(e) => e.stopPropagation()}>
             {/* Header */}
-            <div className="flex shrink-0 items-center justify-between px-6 pt-6 pb-4">
+            <div className="flex shrink-0 items-center justify-between px-5 pt-5 pb-3">
               <h2 className="text-lg font-bold">{editingProduct ? 'Edit Product' : 'Add Product'}</h2>
               <button onClick={() => setShowModal(false)}><X size={20} className="text-gray-500" /></button>
             </div>
 
             {/* Scrollable Form Content */}
             <form onSubmit={handleSubmit} className="flex flex-1 flex-col overflow-hidden">
-              <div className="flex-1 space-y-4 overflow-y-auto px-6 pb-4 scrollbar-none">
-                {/* Product Image */}
+              <div className="flex-1 space-y-3.5 overflow-y-auto px-5 pb-3 scrollbar-none">
+                {/* Name with Voice Input — first field */}
                 <div>
-                  <label className="mb-2 block text-xs text-gray-500">Product Image</label>
-                  <ImageUpload value={form.image} onChange={handleImageChange} />
-                  {imageRecognizing && (
-                    <div className="mt-2 flex items-center gap-1.5 text-xs text-emerald-400">
-                      <Sparkles size={12} className="animate-pulse" />
-                      Recognizing product with AI...
-                    </div>
-                  )}
-                  {fetchingImage && (
-                    <div className="mt-2 flex items-center gap-1.5 text-xs text-blue-400">
-                      <Sparkles size={12} className="animate-pulse" />
-                      Finding product image...
-                    </div>
-                  )}
-                </div>
-
-                {/* Name with Voice Input */}
-                <div>
-                  <label className="mb-1 block text-xs text-gray-500">Product Name</label>
+                  <label className="mb-1 block text-xs text-gray-500">Product Name *</label>
                   <div className="relative">
                     <input className="input pr-12" placeholder={businessDef?.placeholder || 'e.g. Product Name'} value={form.name} onChange={setField('name')} onBlur={handleNameBlur} required />
                     <button
@@ -540,38 +533,15 @@ export default function InventoryPage() {
                       {isListening && <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 animate-ping rounded-full bg-red-500" />}
                     </button>
                   </div>
-                  {isListening && (
-                    <>
-                      <p className="mt-1 animate-pulse text-xs text-red-400">Listening...</p>
-                      <div className="mt-2 rounded-xl bg-gray-900 border border-gray-800 p-3 space-y-1.5">
-                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Try saying</p>
-                        {(businessDef?.voiceExamples || [
-                          '"10 bags of Basmati Rice at 120 rupees each"',
-                          '"Samsung Galaxy Buds, electronics, 3 pieces, 4500 rupees"',
-                          '"5 kg cement at 350 total"',
-                        ]).map((ex, i) => (
-                          <p key={i} className={`text-xs ${i === 0 ? 'text-emerald-400' : 'text-gray-500'}`}>{ex}</p>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                  {!isListening && !voiceParsing && !form.name && (
-                    <div className="mt-2 rounded-xl bg-gray-900/50 border border-dashed border-gray-800 p-2.5">
-                      <p className="text-[10px] text-gray-600 text-center">
-                        Tap <span className="text-gray-500">🎤</span> and say something like: <span className="text-gray-400">{businessDef?.voiceHint || '"20 items at 40 rupees, category"'}</span>
-                      </p>
-                    </div>
-                  )}
+                  {isListening && <p className="mt-1 animate-pulse text-xs text-red-400">Listening... speak now</p>}
                   {voiceParsing && (
                     <div className="mt-1 flex items-center gap-1.5 text-xs text-emerald-400">
-                      <Sparkles size={12} className="animate-pulse" />
-                      Parsing with AI...
+                      <Sparkles size={12} className="animate-pulse" /> Parsing with AI...
                     </div>
                   )}
                   {autoCategorizing && (
                     <div className="mt-1 flex items-center gap-1.5 text-xs text-purple-400">
-                      <Sparkles size={12} className="animate-pulse" />
-                      Auto-categorizing with AI...
+                      <Sparkles size={12} className="animate-pulse" /> Auto-categorizing...
                     </div>
                   )}
                 </div>
@@ -593,15 +563,31 @@ export default function InventoryPage() {
                     <input className="input" type="number" placeholder="0" value={form.quantity} onChange={setField('quantity')} />
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs text-gray-500">Low Stock Threshold</label>
+                    <label className="mb-1 block text-xs text-gray-500">Low Stock Alert</label>
                     <input className="input" type="number" placeholder="5" value={form.threshold} onChange={setField('threshold')} />
                   </div>
                 </div>
+
+                {/* Product Image — below fields, less prominent */}
+                <div>
+                  <label className="mb-1.5 block text-xs text-gray-500">Product Image (optional)</label>
+                  <ImageUpload value={form.image} onChange={handleImageChange} />
+                  {imageRecognizing && (
+                    <div className="mt-1.5 flex items-center gap-1.5 text-xs text-emerald-400">
+                      <Sparkles size={12} className="animate-pulse" /> Recognizing product...
+                    </div>
+                  )}
+                  {fetchingImage && (
+                    <div className="mt-1.5 flex items-center gap-1.5 text-xs text-blue-400">
+                      <Sparkles size={12} className="animate-pulse" /> Finding image...
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* Sticky Footer Buttons */}
-              <div className="shrink-0 border-t border-gray-800 px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] space-y-2">
-                <button type="submit" disabled={saving || imageRecognizing} className="btn-primary flex w-full items-center justify-center py-3.5 text-sm font-semibold">
+              {/* Sticky Footer Buttons — always visible */}
+              <div className="shrink-0 border-t border-gray-800 px-5 py-3 space-y-2">
+                <button type="submit" disabled={saving || imageRecognizing} className="btn-primary flex w-full items-center justify-center py-3 text-sm font-semibold">
                   {saving ? <LoadingSpinner size="sm" /> : editingProduct ? 'Update Product' : 'Add Product'}
                 </button>
 
@@ -609,7 +595,7 @@ export default function InventoryPage() {
                   <button
                     type="button"
                     onClick={() => { handleDelete(editingProduct); setShowModal(false); }}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm text-red-400 transition-colors hover:bg-red-500/10"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm text-red-400 transition-colors hover:bg-red-500/10"
                   >
                     <Trash2 size={14} /> Delete Product
                   </button>

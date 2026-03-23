@@ -5,9 +5,10 @@ import {
   Package,
   MessageCircle,
   BarChart3,
-  Image,
+  Megaphone,
   LogOut,
   Bell,
+  Sparkles,
 } from 'lucide-react';
 import { useAuthContext } from '../contexts/AuthContext';
 import { useNotifications } from '../hooks/useNotifications';
@@ -18,7 +19,7 @@ const navItems = [
   { to: '/inventory', icon: Package, label: 'Inventory' },
   { to: '/chat', icon: MessageCircle, label: 'Chat' },
   { to: '/analytics', icon: BarChart3, label: 'Analytics' },
-  { to: '/poster', icon: Image, label: 'Poster' },
+  { to: '/poster', icon: Megaphone, label: 'Promo' },
 ];
 
 export default function NavBar() {
@@ -32,7 +33,79 @@ export default function NavBar() {
 
   return (
     <>
-      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-gray-800 bg-gray-950/95 backdrop-blur-lg">
+      {/* ─── Desktop Sidebar ─── */}
+      <aside className="hidden lg:flex fixed inset-y-0 left-0 z-40 w-64 flex-col border-r border-gray-800 bg-gray-950">
+        {/* Logo */}
+        <div className="flex items-center gap-3 px-6 py-6">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/15">
+            <Sparkles size={18} className="text-emerald-400" />
+          </div>
+          <span className="text-lg font-bold">BizBuddy AI</span>
+        </div>
+
+        {/* Nav Links */}
+        <nav className="flex-1 space-y-1 px-3 pt-2">
+          {navItems.map(({ to, icon: Icon, label }) => (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) =>
+                `flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors ${
+                  isActive
+                    ? 'bg-emerald-500/10 text-emerald-400'
+                    : 'text-gray-400 hover:bg-gray-900 hover:text-gray-200'
+                }`
+              }
+            >
+              <Icon size={20} strokeWidth={1.5} />
+              <span>{label}</span>
+            </NavLink>
+          ))}
+
+          {/* Notifications */}
+          <button
+            onClick={() => setShowNotifications(true)}
+            className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-gray-400 transition-colors hover:bg-gray-900 hover:text-gray-200"
+          >
+            <div className="relative">
+              <Bell size={20} strokeWidth={1.5} />
+              {unreadCount > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </div>
+            <span>Alerts</span>
+          </button>
+        </nav>
+
+        {/* User Section */}
+        <div className="border-t border-gray-800 p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-gray-700 bg-gray-800">
+              {photoURL ? (
+                <img src={photoURL} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <span className="text-xs font-bold text-gray-300">{initial}</span>
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium">{user?.displayName || 'User'}</p>
+              <p className="truncate text-[11px] text-gray-500">{user?.email}</p>
+            </div>
+            <button
+              onClick={signOut}
+              className="rounded-lg p-2 text-gray-500 transition-colors hover:bg-red-500/10 hover:text-red-400"
+              title="Sign Out"
+            >
+              <LogOut size={16} />
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      {/* ─── Mobile Bottom Nav ─── */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-gray-800 bg-gray-950/95 backdrop-blur-lg">
         <div className="mx-auto flex max-w-lg items-center justify-around px-2 py-2">
           {navItems.map(({ to, icon: Icon, label }) => (
             <NavLink

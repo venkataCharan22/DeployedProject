@@ -28,7 +28,7 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex h-dvh flex-col pb-20 pt-4">
+    <div className="flex h-dvh flex-col pb-20 pt-4 lg:pb-4 lg:pt-6">
       {/* Header */}
       <div className="flex items-center gap-2 px-4 pb-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/15">
@@ -67,7 +67,7 @@ export default function ChatPage() {
       {/* Input */}
       <form
         onSubmit={handleSubmit}
-        className="border-t border-gray-800 bg-gray-950 px-4 pt-3"
+        className="border-t border-gray-800 bg-gray-950 px-4 pt-3 lg:px-8"
       >
         <div className="flex items-center gap-2">
           <input

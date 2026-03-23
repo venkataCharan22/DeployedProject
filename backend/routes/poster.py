@@ -8,17 +8,17 @@ router = APIRouter(tags=["poster"])
 @router.post("/poster", response_model=PosterResponse)
 async def generate_poster(request: PosterRequest):
     """Accept an offer description and return AI-generated poster text."""
-    prompt = f"""Create a catchy promotional poster text for a small Indian shop.
+    prompt = f"""Create a catchy promotional phrase/caption for a small Indian shop to share on WhatsApp or Instagram.
 Offer/promotion: {request.description}
 
 Requirements:
 - Use emojis for visual appeal
-- Include a bold headline
-- List 2-3 key benefits with checkmarks
-- Add a call-to-action
-- Include store hours placeholder
-- Add 2-3 relevant hashtags
-- Keep it short and punchy, suitable for WhatsApp/Instagram sharing"""
+- Keep it SHORT (3-5 lines max)
+- Make it punchy and attention-grabbing
+- Add 2-3 relevant hashtags at the end
+- Suitable for WhatsApp status or Instagram story
+- Do NOT include store hours or address placeholders
+- Write in a mix of English (with optional Hindi words for flavor)"""
 
     try:
         client = get_groq_client()

@@ -22,9 +22,15 @@ function FullScreenLoader() {
 
 function AppLayout({ children }) {
   return (
-    <div className="mx-auto min-h-dvh max-w-lg pb-20">
-      {children}
+    <div className="flex min-h-dvh">
+      {/* Sidebar — desktop only */}
       <NavBar />
+      {/* Main content */}
+      <main className="flex-1 min-h-dvh pb-20 lg:pb-0 lg:pl-64">
+        <div className="mx-auto max-w-5xl">
+          {children}
+        </div>
+      </main>
     </div>
   );
 }

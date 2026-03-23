@@ -18,15 +18,18 @@ export default function DashboardPage() {
 
   const [suggestions, setSuggestions] = useState([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [suggestionsError, setSuggestionsError] = useState(false);
   const [dailyTip, setDailyTip] = useState(null);
 
   // Smart Restock
   const [restockRecs, setRestockRecs] = useState([]);
   const [loadingRestock, setLoadingRestock] = useState(false);
+  const [restockError, setRestockError] = useState(false);
 
   // Demand Forecast
   const [forecast, setForecast] = useState(null);
   const [loadingForecast, setLoadingForecast] = useState(false);
+  const [forecastError, setForecastError] = useState(false);
 
   const isBusiness = profile?.userType === 'business';
   const shopName = profile?.businessName || 'Your Shop';
@@ -34,6 +37,7 @@ export default function DashboardPage() {
   const fetchSuggestions = async () => {
     if (!isBusiness || !profile?.businessType) return;
     setLoadingSuggestions(true);
+    setSuggestionsError(false);
     try {
       const { data } = await api.post('/suggest-products', {
         business_type: profile.businessType,
@@ -42,6 +46,7 @@ export default function DashboardPage() {
       setSuggestions(data.products || []);
     } catch (err) {
       console.error('Suggestion fetch failed:', err);
+      setSuggestionsError(true);
     } finally {
       setLoadingSuggestions(false);
     }
@@ -75,11 +80,13 @@ export default function DashboardPage() {
   // Fetch Smart Restock
   const fetchRestock = async () => {
     setLoadingRestock(true);
+    setRestockError(false);
     try {
       const { data } = await api.get('/smart-restock');
       setRestockRecs(data.recommendations || []);
     } catch (err) {
       console.error('Smart restock failed:', err);
+      setRestockError(true);
     } finally {
       setLoadingRestock(false);
     }
@@ -88,6 +95,7 @@ export default function DashboardPage() {
   // Fetch Demand Forecast
   const fetchForecast = async () => {
     setLoadingForecast(true);
+    setForecastError(false);
     try {
       const { data } = await api.get('/demand-forecast', {
         params: { business_type: profile?.businessType || '' },
@@ -95,6 +103,7 @@ export default function DashboardPage() {
       setForecast(data);
     } catch (err) {
       console.error('Demand forecast failed:', err);
+      setForecastError(true);
     } finally {
       setLoadingForecast(false);
     }
@@ -144,7 +153,7 @@ export default function DashboardPage() {
   const totalValue = products.reduce((sum, p) => sum + (p.price || 0) * (p.quantity || 0), 0);
 
   return (
-    <div className="space-y-6 px-4 pb-24 pt-6">
+    <div className="space-y-6 px-4 pb-24 pt-6 lg:px-8 lg:pt-8">
       {/* AI Greeting Card (business users) */}
       {isBusiness && (aiGreeting || dailyTip) ? (
         <div className="rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/5 to-transparent p-4">
@@ -170,7 +179,7 @@ export default function DashboardPage() {
       )}
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatsCard icon={Package} label="Total Products" value={totalProducts} color="blue" />
         <StatsCard icon={AlertTriangle} label="Low Stock" value={lowStockCount} color="red" />
         <StatsCard icon={IndianRupee} label="Stock Value" value={`\u20B9${totalValue.toLocaleString()}`} color="emerald" />
@@ -207,6 +216,11 @@ export default function DashboardPage() {
             <div className="flex items-center justify-center py-6">
               <LoadingSpinner size="md" />
             </div>
+          ) : suggestionsError && suggestions.length === 0 ? (
+            <div className="flex items-center justify-center py-4 text-xs text-red-400">
+              Failed to load suggestions.{' '}
+              <button onClick={fetchSuggestions} className="ml-1 underline hover:text-red-300">Retry</button>
+            </div>
           ) : suggestions.length > 0 ? (
             <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
               {suggestions.map((product, i) => (
@@ -217,8 +231,10 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* AI Restock + Forecast Row */}
+      <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
       {/* AI Smart Restock (business only) */}
-      {isBusiness && (restockRecs.length > 0 || loadingRestock) && (
+      {isBusiness && (restockRecs.length > 0 || loadingRestock || restockError) && (
         <div>
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-gray-400 flex items-center gap-1.5">
@@ -236,6 +252,11 @@ export default function DashboardPage() {
           {loadingRestock && restockRecs.length === 0 ? (
             <div className="flex items-center justify-center py-4">
               <LoadingSpinner size="sm" />
+            </div>
+          ) : restockError && restockRecs.length === 0 ? (
+            <div className="flex items-center justify-center py-4 text-xs text-red-400">
+              Failed to load restock suggestions.{' '}
+              <button onClick={fetchRestock} className="ml-1 underline hover:text-red-300">Retry</button>
             </div>
           ) : (
             <div className="space-y-2">
@@ -266,7 +287,7 @@ export default function DashboardPage() {
       )}
 
       {/* AI Demand Forecast (business only) */}
-      {isBusiness && (forecast || loadingForecast) && (
+      {isBusiness && (forecast || loadingForecast || forecastError) && (
         <div>
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-gray-400 flex items-center gap-1.5">
@@ -284,6 +305,11 @@ export default function DashboardPage() {
           {loadingForecast && !forecast ? (
             <div className="flex items-center justify-center py-4">
               <LoadingSpinner size="sm" />
+            </div>
+          ) : forecastError && !forecast ? (
+            <div className="flex items-center justify-center py-4 text-xs text-red-400">
+              Failed to load forecast.{' '}
+              <button onClick={fetchForecast} className="ml-1 underline hover:text-red-300">Retry</button>
             </div>
           ) : forecast ? (
             <div className="space-y-3">
@@ -377,10 +403,12 @@ export default function DashboardPage() {
         </div>
       )}
 
+      </div>
+
       {/* Quick Actions */}
       <div>
         <h2 className="mb-3 text-sm font-semibold text-gray-400">Quick Actions</h2>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           {[
             { label: 'Add Product', icon: '\uD83D\uDCE6', path: '/inventory' },
             { label: 'Scan Bill', icon: '\uD83D\uDCF8', path: '/inventory' },

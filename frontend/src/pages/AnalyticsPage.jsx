@@ -186,7 +186,7 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="space-y-5 px-4 pb-24 pt-6">
+    <div className="space-y-5 px-4 pb-24 pt-6 lg:px-8 lg:pt-8">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold">Analytics</h1>
@@ -285,7 +285,7 @@ export default function AnalyticsPage() {
       )}
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatsCard icon={Package} label="Products" value={stats.totalProducts} color="blue" />
         <StatsCard icon={AlertTriangle} label="Low Stock" value={stats.lowStockItems.length} color="red" />
         <StatsCard icon={IndianRupee} label="Stock Value" value={`\u20B9${stats.totalValue.toLocaleString('en-IN')}`} color="emerald" />
@@ -293,7 +293,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Sales Summary Cards */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-3 lg:grid-cols-3">
         <div className="card text-center py-3">
           <ShoppingCart size={18} className="mx-auto text-emerald-400" />
           <p className="mt-1 text-lg font-bold">{stats.totalSales}</p>
@@ -311,6 +311,8 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
+      {/* Charts Row */}
+      <div className="grid gap-5 lg:grid-cols-2">
       {/* Revenue Trend (Last 7 Days) */}
       {transactions.length > 0 && (
         <div className="card">
@@ -343,6 +345,10 @@ export default function AnalyticsPage() {
         </div>
       )}
 
+      </div>
+
+      {/* Details Row */}
+      <div className="grid gap-5 lg:grid-cols-2">
       {/* Top Selling Products */}
       {topSellers.length > 0 && (
         <div className="card">
@@ -387,6 +393,10 @@ export default function AnalyticsPage() {
         </div>
       )}
 
+      </div>
+
+      {/* Bottom Row */}
+      <div className="grid gap-5 lg:grid-cols-2">
       {/* Active Rentals */}
       {rentals.length > 0 && (
         <div className="card">
@@ -487,6 +497,8 @@ export default function AnalyticsPage() {
           </div>
         </div>
       )}
+
+      </div>
 
       {products.length === 0 && (
         <div className="card text-center py-8">

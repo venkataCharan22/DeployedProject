@@ -1,9 +1,12 @@
 import os
+import logging
 import httpx
 from fastapi import APIRouter
 from pydantic import BaseModel
 from typing import Optional
 from services.groq_service import get_groq_client
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["product-image"])
 
@@ -70,13 +73,15 @@ Return ONLY a short (2-5 word) English search query that would find the best pho
                 ai_query = completion.choices[0].message.content.strip().strip('"').strip("'")
                 if ai_query:
                     search_query = ai_query
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"AI query refinement failed for '{req.product_name}': {e}")
 
             result = await search_pexels(search_query, http)
             if result:
                 return result
 
+            logger.info(f"No Pexels results for '{req.product_name}' (query: '{search_query}')")
             return {"image_url": None, "search_query": search_query}
-    except Exception:
+    except Exception as e:
+        logger.error(f"Product image fetch failed for '{req.product_name}': {e}")
         return {"image_url": None, "search_query": req.product_name}

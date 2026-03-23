@@ -164,9 +164,11 @@ export default function RentModal({ product, onConfirm, onClose }) {
               onChange={handleDateChange}
               onInput={handleDateChange}
               onBlur={() => {
-                // Safari fallback: read value from DOM on blur
-                if (dateRef.current?.value && !returnDate) {
-                  setReturnDate(dateRef.current.value);
+                // Safari fallback: sync state with DOM value
+                const domVal = dateRef.current?.value;
+                if (domVal && domVal !== returnDate) {
+                  setReturnDate(domVal);
+                  setActiveDuration(null);
                 }
               }}
             />

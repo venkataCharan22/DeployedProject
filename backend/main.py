@@ -20,21 +20,7 @@ app = FastAPI(
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "http://localhost:3000",
-        "http://10.134.247.152:5173",
-        "http://10.134.247.152:5174",
-        "https://10.134.247.152:5173",
-        "https://10.134.247.152:5174",
-        "http://9.124.105.118:5173",
-        "http://9.124.105.118:5174",
-        "https://9.124.105.118:5173",
-        "https://9.124.105.118:5174",
-        "https://bizbuddy-ai.web.app",
-        "https://bizbuddy-ai.firebaseapp.com",
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
